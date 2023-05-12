@@ -17,6 +17,7 @@ lazy val tyriancourse =
       organization := "me.slivkamiro",
       libraryDependencies ++= Seq(
         "io.indigoengine" %%% "tyrian-io" % "0.6.2",
+        "io.circe" %%% "circe-parser" % "0.14.1",
         "org.scalameta"   %%% "munit"     % "0.7.29" % Test
       ),
       testFrameworks += new TestFramework("munit.Framework"),
@@ -59,3 +60,21 @@ lazy val tyriancourse =
 
 lazy val code =
   taskKey[Unit]("Launch VSCode in the current directory")
+
+
+  lazy val backend = (project in file("backend"))
+      .settings(
+        name := "backend",
+        version := "0.0.1",
+        scalaVersion := "3.2.2",
+        organization := "me.slivkamiro",
+        libraryDependencies ++= Seq(
+          "com.github.fd4s" %% "fs2-kafka" % "3.0.1",
+          "org.http4s" %% "http4s-ember-server" % "0.23.18",
+          "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % "1.3.0",
+          "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % "1.3.0"
+        ),
+        testFrameworks += new TestFramework("munit.Framework"),
+        semanticdbEnabled := true,
+        semanticdbVersion := scalafixSemanticdb.revision,
+      )
