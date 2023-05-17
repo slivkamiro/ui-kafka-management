@@ -10,6 +10,8 @@ import fs2.kafka.*
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.CORS
 import org.http4s.server.middleware.CORSConfig
+import scala.concurrent.duration.*
+import sttp.tapir.server.ServerEndpoint
 
 object Main extends IOApp {
 
@@ -17,12 +19,31 @@ object Main extends IOApp {
     .in("topics")
     .out(jsonBody[List[String]])
 
+  val topicMessages = endpoint
+    .in("topics" / path[String]("topic"))
+    .in(query[Int]("size").default(10))
+    .out(jsonBody[List[String]])
 
-  def endpoints(admin: KafkaAdminClient[IO]) = List(
-    listTopics.serverLogic(_ => admin.listTopics.names.map(_.toList.asRight))
+  def endpoints(admin: KafkaAdminClient[IO]): List[ServerEndpoint[Any, IO]] = List(
+    listTopics.serverLogic(_ => admin.listTopics.names.map(_.toList.asRight)),
+    topicMessages.serverLogic { (topic, size) =>
+      KafkaConsumer[IO]
+        .stream(
+          ConsumerSettings[IO, Array[Byte], String].withBootstrapServers(
+            "localhost:9092"
+          )
+        )
+        .evalTap(_.assign(topic))
+        .evalTap(_.seekToBeginning)
+        .records
+        .take(size)
+        .map(_.record.value)
+        .interruptAfter(1.second)
+        .compile
+        .toList
+        .map(_.asRight)
+    }
   )
-
-
 
   override def run(args: List[String]): IO[ExitCode] = KafkaAdminClient
     .resource[IO](AdminClientSettings("localhost:9092"))

@@ -1,35 +1,35 @@
 package me.slivkamiro
 
 import cats.effect.IO
-import io.circe.parser
 import tyrian.Html.*
 import tyrian.*
 import tyrian.cmds.Logger
-import tyrian.http.*
 
 import scala.scalajs.js.annotation.*
 
 @JSExportTopLevel("TyrianApp")
-object TyrianCourse extends TyrianApp[Msg, Model] {
+object TyrianCourse extends TyrianApp[page.Msg, page.Model] {
 
-  def init(flags: Map[String, String]): (Model, Cmd[IO, Msg]) =
-    (Set(), Http.send(Request.get("http://localhost:80/topics").withHeaders(Header("Access-Control-Allow-Origin","*")), Decoder(resp => parser.decode[List[String]](resp.body).fold(_ => Msg.TopicsRetrievalError, v => Msg.Topics(v.toSet)), err => Msg.TopicsRetrievalError)))
+  def init(flags: Map[String, String]): (page.Model, Cmd[IO, page.Msg]) =
+    (page.Model.Topics(Set()), Backend.topics)
 
-  def update(model: Model): Msg => (Model, Cmd[IO, Msg]) =
-    case Msg.Topics(topics) => (topics, Cmd.None)
-    case Msg.TopicsRetrievalError => (Set.empty, Logger.error("Failed to retreive Kafka Topics"))
+  def update(model: page.Model): page.Msg => (page.Model, Cmd[IO, page.Msg]) =
+    case page.Topics.Msg.Topics(topics) => (page.Model.Topics(topics), Cmd.None)
+    case page.Topics.Msg.TopicsRetrievalError =>
+      (model, Logger.error("Failed to retreive Kafka Topics"))
+    case page.Topics.Msg.ViewTopic(topic) => (model, Backend.messages(topic))
+    case page.TopicMessages.Msg.Messages(topic, messages) =>
+      (page.Model.TopicMessages(topic, messages), Cmd.None)
+    case page.TopicMessages.Msg.MessagesRetrievalError =>
+      (model, Logger.error("Failed to retreive Messages from Kafka topic"))
 
-  def view(model: Model): Html[Msg] =
-    div(
-      ul(model.map(li(_)).toSeq:_*)
-    )
+  def view(model: page.Model): Html[page.Msg] = model match {
+    case page.Model.Topics(topics) => page.Topics.view(topics)
 
-  def subscriptions(model: Model): Sub[IO, Msg] =
+    case page.Model.TopicMessages(topic, messages) =>
+      page.TopicMessages.view(topic, messages)
+  }
+
+  def subscriptions(model: page.Model): Sub[IO, page.Msg] =
     Sub.None
 }
-
-type Model = Set[String]
-
-enum Msg:
-  case Topics(value: Set[String])
-  case TopicsRetrievalError
