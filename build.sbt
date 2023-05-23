@@ -16,7 +16,7 @@ lazy val tyriancourse =
       scalaVersion := "3.2.2",
       organization := "me.slivkamiro",
       libraryDependencies ++= Seq(
-        "io.indigoengine" %%% "tyrian-io" % "0.6.2",
+        "io.indigoengine" %%% "tyrian-io" % "0.7.0",
         "io.circe" %%% "circe-parser" % "0.14.1",
         "org.scalameta"   %%% "munit"     % "0.7.29" % Test
       ),

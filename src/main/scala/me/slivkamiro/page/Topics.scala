@@ -8,6 +8,7 @@ import tyrian.http.*
 object Topics:
 
   enum Msg:
+    case Load
     case Topics(value: Set[String])
     case ViewTopic(topic: String)
     case TopicsRetrievalError
